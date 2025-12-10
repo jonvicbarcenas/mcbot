@@ -27,7 +27,7 @@ module.exports = {
     attackRange: 3,            // Melee attack range
     bowRange: 32,              // Bow attack range
     chestLocation: { x: 10, y: 63, z: -55 },  // Chest location for deposits
-    chestSearchRadius: 10,     // Radius to search for chests
+    chestSearchRadius: 15,     // Radius to search for chests
     sugarcaneDepositThreshold: 64,  // Deposit when sugarcane >= this amount
   },
 

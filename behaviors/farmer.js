@@ -95,6 +95,64 @@ class Farmer {
     return nearestSugarcane;
   }
 
+  // Find multiple mature sugarcane plants to harvest (batch processing)
+  findMultipleSugarcane(maxCount = 10) {
+    console.log(`🔍 Searching for up to ${maxCount} sugarcane within ${config.behavior.farmRadius} blocks...`);
+
+    // First, find all sugarcane blocks (matching by block type ID)
+    const sugarcaneBlockType = this.bot.registry.blocksByName.sugar_cane;
+    if (!sugarcaneBlockType) {
+        console.log(`❌ Sugar cane block type not found in registry`);
+        return [];
+    }
+
+    const sugarcanePositions = this.bot.findBlocks({
+        matching: sugarcaneBlockType.id,
+        maxDistance: config.behavior.farmRadius,
+        count: 200
+    });
+
+    if (sugarcanePositions.length === 0) {
+        console.log(`❌ No sugarcane found within search radius`);
+        return [];
+    }
+
+    // Filter for mature sugarcane (has at least 2 blocks high) and not recently harvested
+    const matureSugarcane = [];
+    for (const pos of sugarcanePositions) {
+        const block = this.bot.blockAt(pos);
+        if (block && block.name === 'sugar_cane') {
+            // Skip if recently harvested
+            if (this.isRecentlyHarvested(block.position)) {
+                continue;
+            }
+            
+            const blockUp = this.bot.blockAt(pos.offset(0, 1, 0));
+            if (blockUp && blockUp.name === 'sugar_cane') {
+                matureSugarcane.push(block);
+            }
+        }
+    }
+
+    if (matureSugarcane.length === 0) {
+        console.log(`❌ No mature sugarcane found within search radius`);
+        return [];
+    }
+
+    // Sort by distance from bot
+    matureSugarcane.sort((a, b) => {
+      const distA = this.bot.entity.position.distanceTo(a.position);
+      const distB = this.bot.entity.position.distanceTo(b.position);
+      return distA - distB;
+    });
+
+    // Return up to maxCount sugarcane
+    const selectedSugarcane = matureSugarcane.slice(0, maxCount);
+    console.log(`✅ Found ${selectedSugarcane.length} mature sugarcane to harvest`);
+
+    return selectedSugarcane;
+  }
+
   // Harvest a specific sugarcane block
   async harvestSugarcane(sugarcaneBlock) {
     if (!sugarcaneBlock) {
@@ -212,21 +270,39 @@ class Farmer {
     async executeHarvest() {
       this.state.setTask('searching', 'Looking for sugarcane');
 
-      const sugarcaneBlock = this.findNearestSugarcane();
+      // Find multiple sugarcane plants to harvest (batch processing)
+      const sugarcaneBlocks = this.findMultipleSugarcane(10);
 
-      if (!sugarcaneBlock) {
+      if (sugarcaneBlocks.length === 0) {
         this.state.cancelTask();
         return { success: false, message: 'No mature sugarcane found nearby!' };
       }
 
       try {
-        await this.harvestSugarcane(sugarcaneBlock);
+        let totalHarvested = 0;
+
+        // Harvest each sugarcane in the batch
+        for (let i = 0; i < sugarcaneBlocks.length; i++) {
+          const sugarcaneBlock = sugarcaneBlocks[i];
+          console.log(`🌾 Harvesting sugarcane ${i + 1}/${sugarcaneBlocks.length}...`);
+          
+          try {
+            await this.harvestSugarcane(sugarcaneBlock);
+            totalHarvested++;
+          } catch (error) {
+            console.log(`⚠️ Failed to harvest sugarcane at ${sugarcaneBlock.position}: ${error.message}`);
+            // Continue with next sugarcane even if one fails
+          }
+        }
+
+        console.log(`✅ Batch complete! Harvested ${totalHarvested}/${sugarcaneBlocks.length} sugarcane`);
 
         // Check if we need to deposit sugarcane
         await this.checkAndDeposit();
 
         return {
           success: true,
+          message: `Harvested ${totalHarvested} sugarcane!`
         };
       } catch (error) {
         return {
