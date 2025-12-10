@@ -1,0 +1,9 @@
+{
+  "home": {
+    "x": 23,
+    "y": 64,
+    "z": -25
+  },
+  "autoattack": false,
+  "autofarm": true
+}

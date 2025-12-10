@@ -1,0 +1,23 @@
+{
+  "name": "minecraft-lumberjack-bot",
+  "version": "1.0.0",
+  "description": "A Minecraft bot that can break logs, craft axes, and use them",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "keywords": [
+    "minecraft",
+    "bot",
+    "mineflayer"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "mineflayer": "^4.20.1",
+    "mineflayer-armor-manager": "^2.0.1",
+    "mineflayer-collectblock": "^1.4.0",
+    "mineflayer-pathfinder": "^2.4.4",
+    "vec3": "^0.1.10"
+  }
+}
